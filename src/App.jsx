@@ -66,52 +66,6 @@ const GithubIcon = () => (
   </svg>
 );
 
-// --- Settings Menu Component ---
-const SettingsMenu = ({ isVisible, onClose, gridCols, setGridCols }) => {
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    if (isVisible) {
-      window.addEventListener("keydown", handleKeyDown);
-    }
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isVisible, onClose]);
-
-  if (!isVisible) return null;
-
-  return (
-    <div style={styles.settingsOverlay} onClick={onClose}>
-      <div style={styles.settingsModal} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.settingsHeader}>
-          <h2 style={styles.settingsTitle}>Settings</h2>
-          <button style={styles.closeButton} onClick={onClose}>
-            ×
-          </button>
-        </div>
-        <div style={styles.settingsContent}>
-          <div style={styles.settingRow}>
-            <label htmlFor="gridCols" style={styles.sliderLabel}>
-              Grid Columns: {gridCols}
-            </label>
-            <input
-              id="gridCols"
-              type="range"
-              min="2"
-              max="10"
-              value={gridCols}
-              onChange={(e) => setGridCols(parseInt(e.target.value, 10))}
-              style={styles.slider}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // --- Lazy Loading Image Component ---
 // This component efficiently loads thumbnails only when they are visible.
 
@@ -205,13 +159,12 @@ const App = () => {
 
   // --- Data Initialization and API Effects ---
 
-  // Effect for one-time application initialization.
+  // Fetch the essential wallpaper list first to render the UI quickly.
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        const [wallpaperList, currentPath, appVersion] = await Promise.all([
+        const [wallpaperList, appVersion] = await Promise.all([
           window.api.getWallpapers(),
-          window.api.getCurrentWallpaper(),
           window.api.getAppVersion(),
         ]);
 
@@ -221,19 +174,37 @@ const App = () => {
 
         setWallpapers(wallpaperList);
         setVersion(appVersion);
-
-        const currentName = currentPath?.trim().split("/").pop();
-        setCurrentWallpaperName(currentName);
-
-        const initialIndex = wallpaperList.findIndex((w) => w === currentName);
-        setSelectedIndex(initialIndex !== -1 ? initialIndex : 0);
       } catch (err) {
         console.error("Initialization Error:", err);
         setError(err.message);
       }
     };
     initializeApp();
-  }, []);
+  }, []); // This effect runs only once.
+
+  // Fetch the current wallpaper after the main UI is visible.
+  // This prevents a slow AppleScript call from blocking the initial render.
+  useEffect(() => {
+    if (wallpapers.length === 0) return; // Don't run until wallpapers are loaded.
+
+    const highlightCurrentWallpaper = async () => {
+      try {
+        const currentPath = await window.api.getCurrentWallpaper();
+        const currentName = currentPath?.trim().split("/").pop();
+        setCurrentWallpaperName(currentName);
+
+        const initialIndex = wallpapers.findIndex((w) => w === currentName);
+        if (initialIndex !== -1) {
+          setSelectedIndex(initialIndex);
+        }
+      } catch (err) {
+        console.error("Could not get current wallpaper:", err);
+        // This is a non-critical error, so we don't block the UI.
+      }
+    };
+
+    highlightCurrentWallpaper();
+  }, [wallpapers]); // This effect runs after the wallpapers state is set.
 
   // Effect for initializing and updating themes.
   useEffect(() => {
