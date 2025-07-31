@@ -1,3 +1,12 @@
+## [1.4.9](https://github.com/floatpane/floatpane/compare/v1.4.8...v1.4.9) (2025-07-31)
+
+
+### Bug Fixes
+
+* add wallpapers to README [skip ci] ([f5967a4](https://github.com/floatpane/floatpane/commit/f5967a4bd33611d1e771284105d2a2e2ef9eecd6))
+* perfomance enchanchment ([465ddec](https://github.com/floatpane/floatpane/commit/465ddec478866986a2635df442881e8d937db945))
+* remove smooth scrolling ([e70ed65](https://github.com/floatpane/floatpane/commit/e70ed65178cdef744ffe1907a2d4a87ed268b8bd))
+
 ## [1.4.8](https://github.com/floatpane/floatpane/compare/v1.4.7...v1.4.8) (2025-07-18)
 
 
