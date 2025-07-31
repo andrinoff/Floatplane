@@ -3,8 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Settings } from "./Settings";
 
 // --- Icon Components ---
-// Self-contained, simple components for icons used in the footer.
-
+// (Components are unchanged)
 const FolderIcon = () => (
   <svg
     width="20"
@@ -51,24 +50,7 @@ const SettingsIcon = () => (
   </svg>
 );
 
-const GithubIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-  </svg>
-);
-
 // --- Lazy Loading Image Component ---
-// This component efficiently loads thumbnails only when they are visible.
-
 const LazyImage = ({
   imageName,
   isSelected,
@@ -80,11 +62,10 @@ const LazyImage = ({
   const [imageData, setImageData] = useState(null);
   const imageRef = useRef();
 
-  // Observe the component and load the image when it enters the viewport.
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        observer.unobserve(entry.target); // Stop observing once visible
+        observer.unobserve(entry.target);
         window.api
           .getThumbnail(imageName)
           .then((base64Data) => {
@@ -115,7 +96,7 @@ const LazyImage = ({
     ...styles.gridItem,
     flexBasis: `calc(${100 / gridCols}%)`,
     maxWidth: `calc(${100 / gridCols}%)`,
-    ...(isSelected && styles.gridItemSelected), // Apply selected style if isSelected is true
+    ...(isSelected && styles.gridItemSelected),
     backgroundColor: imageData
       ? "transparent"
       : styles.gridItem.placeholderColor,
@@ -138,9 +119,7 @@ const LazyImage = ({
 };
 
 // --- Main Application Component ---
-
 const App = () => {
-  // --- State Management ---
   const [wallpapers, setWallpapers] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [currentWallpaperName, setCurrentWallpaperName] = useState("");
@@ -149,17 +128,13 @@ const App = () => {
   const [version, setVersion] = useState("");
   const [error, setError] = useState(null);
   const [isSettingsVisible, setSettingsVisible] = useState(false);
-  const [gridCols] = useState(4); // Kept as state in case we want to make it dynamic later
-
-  // Use a ref to store a snapshot of state for the keydown handler to avoid stale closures.
+  const [gridCols] = useState(4);
   const appState = useRef({ wallpapers, selectedIndex, gridCols });
+
   useEffect(() => {
     appState.current = { wallpapers, selectedIndex, gridCols };
   }, [wallpapers, selectedIndex, gridCols]);
 
-  // --- Data Initialization and API Effects ---
-
-  // Fetch the essential wallpaper list first to render the UI quickly.
   useEffect(() => {
     const initializeApp = async () => {
       try {
@@ -180,33 +155,26 @@ const App = () => {
       }
     };
     initializeApp();
-  }, []); // This effect runs only once.
+  }, []);
 
-  // Fetch the current wallpaper after the main UI is visible.
-  // This prevents a slow AppleScript call from blocking the initial render.
   useEffect(() => {
-    if (wallpapers.length === 0) return; // Don't run until wallpapers are loaded.
-
+    if (wallpapers.length === 0) return;
     const highlightCurrentWallpaper = async () => {
       try {
         const currentPath = await window.api.getCurrentWallpaper();
         const currentName = currentPath?.trim().split("/").pop();
         setCurrentWallpaperName(currentName);
-
         const initialIndex = wallpapers.findIndex((w) => w === currentName);
         if (initialIndex !== -1) {
           setSelectedIndex(initialIndex);
         }
       } catch (err) {
         console.error("Could not get current wallpaper:", err);
-        // This is a non-critical error, so we don't block the UI.
       }
     };
-
     highlightCurrentWallpaper();
-  }, [wallpapers]); // This effect runs after the wallpapers state is set.
+  }, [wallpapers]);
 
-  // Effect for initializing and updating themes.
   useEffect(() => {
     const initializeTheme = async () => {
       try {
@@ -223,18 +191,11 @@ const App = () => {
       }
     };
     initializeTheme();
-
-    // Listen for live theme changes from the main process
     const handleThemeUpdated = (event, newTheme) => setTheme(newTheme);
     const unsubscribe = window.api.onThemeUpdated(handleThemeUpdated);
-
-    // Cleanup listener on component unmount
     return () => unsubscribe();
   }, []);
 
-  // --- User Interaction and Event Handlers ---
-
-  // Memoized function to set the wallpaper.
   const setMacWallpaper = useCallback((imageName) => {
     if (!imageName) return;
     window.api
@@ -246,10 +207,8 @@ const App = () => {
       .catch((err) => console.error("Failed to set wallpaper:", err));
   }, []);
 
-  // Effect to handle all keyboard inputs.
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Handle settings shortcut regardless of modal visibility
       if (
         (e.metaKey && e.key === ",") ||
         (e.metaKey && e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "p")
@@ -258,13 +217,9 @@ const App = () => {
         setSettingsVisible((prev) => !prev);
         return;
       }
-
-      // If settings are visible, don't process grid navigation
       if (isSettingsVisible) return;
-
       e.preventDefault();
       const { wallpapers, selectedIndex, gridCols } = appState.current;
-
       switch (e.key) {
         case "ArrowUp":
           setSelectedIndex((prev) => Math.max(0, prev - gridCols));
@@ -292,22 +247,19 @@ const App = () => {
           break;
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSettingsVisible, setMacWallpaper]);
 
-  // Effect to scroll the selected wallpaper into view.
   useEffect(() => {
     if (wallpapers.length > 0 && wallpapers[selectedIndex]) {
       const element = document.getElementById(
         `wallpaper-${wallpapers[selectedIndex]}`
       );
-      element?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      // Use 'auto' to scroll instantly to the selected item.
+      element?.scrollIntoView({ behavior: "auto", block: "nearest" });
     }
   }, [selectedIndex, wallpapers]);
-
-  // --- Conditional Rendering ---
 
   if (error) {
     const errorStyles = theme
@@ -321,15 +273,11 @@ const App = () => {
     );
   }
 
-  // Show a blank screen or a loading spinner while the theme is loading.
   if (!theme) {
     return null;
   }
 
-  // --- Main Render ---
-
   const styles = getStyles(theme);
-
   return (
     <div style={styles.container}>
       <Settings
@@ -340,7 +288,6 @@ const App = () => {
         onThemeChange={setTheme}
         styles={styles}
       />
-
       <div style={styles.modalContainer}>
         <div style={styles.modal}>
           <main style={styles.gridContainer}>
@@ -358,7 +305,6 @@ const App = () => {
               ))}
             </div>
           </main>
-
           <footer style={styles.footer}>
             <div style={styles.footerLeft}>
               {version && <span style={styles.version}>v{version}</span>}
@@ -404,7 +350,6 @@ const App = () => {
 };
 
 // --- Styling ---
-
 const getFallbackTheme = () => ({
   name: "Fallback",
   colors: {
@@ -416,7 +361,6 @@ const getFallbackTheme = () => ({
 });
 
 const getStyles = (theme) => ({
-  // Base and Modal
   container: {
     position: "fixed",
     inset: 0,
@@ -444,7 +388,6 @@ const getStyles = (theme) => ({
     flexDirection: "column",
     overflow: "hidden",
   },
-  // Grid and Items
   gridContainer: { flexGrow: 1, padding: "1rem", overflowY: "auto" },
   grid: {
     display: "flex",
@@ -455,6 +398,7 @@ const getStyles = (theme) => ({
     height: "100%",
     overflowX: "auto",
     scrollbarWidth: "none",
+    // By removing scroll-behavior, the scrolling will now be instant.
   },
   gridItem: {
     position: "relative",
@@ -477,7 +421,7 @@ const getStyles = (theme) => ({
   image: {
     width: "100%",
     height: "100%",
-    objectFit: "cover", // This is the magic property!
+    objectFit: "cover",
     position: "absolute",
     top: 0,
     left: 0,
@@ -488,7 +432,6 @@ const getStyles = (theme) => ({
     background:
       "radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.5) 100%)",
   },
-  // Footer
   footer: {
     flexShrink: 0,
     display: "flex",
@@ -511,7 +454,6 @@ const getStyles = (theme) => ({
     transition: "color 0.2s ease, background-color 0.2s ease",
   },
   version: { color: `${theme.colors.onSurface}66`, fontSize: "0.75rem" },
-  // Error Display
   error: {
     color: theme.colors.error,
     backgroundColor: `${theme.colors.surface}cc`,
@@ -527,7 +469,6 @@ const getStyles = (theme) => ({
     border: `1px solid ${theme.colors.error}`,
     boxShadow: `0 0 20px ${theme.colors.error}50`,
   },
-  // Settings Modal Styles
   settingsOverlay: {
     position: "fixed",
     inset: 0,
